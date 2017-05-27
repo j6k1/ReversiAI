@@ -16,7 +16,7 @@ import xyz.hotchpotch.reversi.core.Point;
 import xyz.hotchpotch.reversi.core.Rule;
 
 public class GameNode implements IOnWon, IOnLost, IOnAddNode {
-	public final static int NumberOfNodesThreshold = 10;
+	public final static int NumberOfNodesThreshold = 5;
 	public final static Point[] points = new Point[64];
 	protected Comparator<GameNode> ucb1Comparator = (a,b) -> {
 		double ucb1A = a.applyUcb1();
@@ -73,6 +73,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		{
 			return false;
 		}
+		else if(Rule.winner(board) == null)
+		{
+			return true;
+		}
 		else
 		{
 			if(Rule.winner(board) == player)
@@ -119,7 +123,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 		assert nodeCount <= 10;
 
-		if(nodeCount == NumberOfNodesThreshold)
+		if(this.children.size() == NumberOfNodesThreshold)
 		{
 			this.owner.update(Collections.max(children, ucb1Comparator));
 		}

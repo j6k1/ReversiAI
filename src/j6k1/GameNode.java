@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Optional;
 import java.util.Random;
 
@@ -17,7 +16,7 @@ import xyz.hotchpotch.reversi.core.Point;
 import xyz.hotchpotch.reversi.core.Rule;
 
 public class GameNode implements IOnWon, IOnLost, IOnAddNode {
-	public final static int NumberOfNodesThreshold = 5;
+	public final static int NumberOfNodesThreshold = 10;
 	public final static Point[] points = new Point[64];
 	protected Comparator<GameNode> ucb1Comparator = (a,b) -> {
 		double ucb1A = a.applyUcb1();
@@ -44,6 +43,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	protected final GameNode[] childrenMap;
 	protected final Optional<GameNode> parent;
 	protected long nodeCount;
+	protected int visitedCount;
 	protected long win;
 	protected long loss;
 	public boolean endNode;
@@ -60,6 +60,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		this.children = new ArrayList<>();
 		this.childrenMap = new GameNode[65];
 		this.nodeCount = 0;
+		this.visitedCount = 0;
 		this.win = 0;
 		this.loss = 0;
 
@@ -124,19 +125,20 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			node = new GameNode(owner, Optional.of(this), player.opposite(), board, p);
 			children.add(node);
 			childrenMap[k] = node;
+			onAddNode();
 		}
 		else
 		{
 			node = childrenMap[k];
 		}
 
-		onAddNode();
-
 		if(!node.endNode) node.playout(rnd, deadline);
 
 		if(!Instant.now().isBefore(deadline)) return;
 
-		if(this.children.size() == NumberOfNodesThreshold)
+		visitedCount++;
+
+		if(visitedCount > NumberOfNodesThreshold)
 		{
 			this.owner.update(Collections.max(children, ucb1Comparator));
 		}
@@ -161,6 +163,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		this.nodeCount++;
 		parent.ifPresent(p -> p.onAddNode());
 	}
+
 	@Override
 	public void onLost() {
 		loss++;

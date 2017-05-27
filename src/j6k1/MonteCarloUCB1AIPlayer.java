@@ -37,7 +37,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 		long limit = Math.min(givenMillisPerTurn,
 				remainingMillisInGame / (Arrays.stream(GameNode.points)
 										.filter(p -> board.colorAt(p) == null)
-										.count() + 1) / 2) * 80 / 100;
+										.count() + 1) / 2);
 		try {
 			return search(board, color, Instant.now().plusMillis(Math.max(0, limit - marginT))).orElse(null);
 		} catch (Exception e) {

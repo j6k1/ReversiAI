@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Optional;
 import java.util.Random;
 
@@ -40,6 +41,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 	protected final Candidate owner;
 	protected final ArrayList<GameNode> children;
+	protected final GameNode[] childrenMap;
 	protected final Optional<GameNode> parent;
 	protected long nodeCount;
 	protected long win;
@@ -56,6 +58,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		this.player = player;
 		this.move = move;
 		this.children = new ArrayList<>();
+		this.childrenMap = new GameNode[65];
 		this.nodeCount = 0;
 		this.win = 0;
 		this.loss = 0;
@@ -112,16 +115,26 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			p = Optional.empty();
 		}
 
-		GameNode node = new GameNode(owner, Optional.of(this), player.opposite(), board, p);
-		children.add(node);
+		GameNode node = null;
+
+		int k = p.map(pt -> pt.i * 8 + pt.j).orElse(64);
+
+		if(childrenMap[k] == null)
+		{
+			node = new GameNode(owner, Optional.of(this), player.opposite(), board, p);
+			children.add(node);
+			childrenMap[k] = node;
+		}
+		else
+		{
+			node = childrenMap[k];
+		}
 
 		onAddNode();
 
 		if(!node.endNode) node.playout(rnd, deadline);
 
 		if(!Instant.now().isBefore(deadline)) return;
-
-		assert nodeCount <= 10;
 
 		if(this.children.size() == NumberOfNodesThreshold)
 		{

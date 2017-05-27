@@ -89,7 +89,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 	public void playout(Random rnd, long endTime)
 	{
-		if(endTime - System.currentTimeMillis() > MonteCarloUCB1AIPlayer.marginT) return;
+		if(endTime - System.currentTimeMillis() <= MonteCarloUCB1AIPlayer.marginT) return;
 
 		Point[] validPoints = Arrays.stream(points)
 				.filter(p -> Rule.canPutAt(board, player, p)).toArray(Point[]::new);

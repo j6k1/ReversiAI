@@ -1,5 +1,6 @@
 package j6k1;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -16,7 +17,7 @@ import xyz.hotchpotch.reversi.framework.Player;
 
 public class MonteCarloUCB1AIPlayer implements Player {
 	private Random rnd;
-	protected static final long marginT = 10L;
+	protected static final long marginT = 100L;
 	protected Comparator<Candidate> candidateComparator = (a,b) -> {
 		if(a.node.win > b.node.win) return 1;
 		else if(a.node.win < b.node.win) return -1;
@@ -36,16 +37,16 @@ public class MonteCarloUCB1AIPlayer implements Player {
 		long limit = Math.min(givenMillisPerTurn,
 				remainingMillisInGame / (Arrays.stream(GameNode.points)
 										.filter(p -> board.colorAt(p) == null)
-										.count() + 1) / 2);
+										.count() + 1) / 2) * 80 / 100;
 		try {
-			return search(board, color, System.currentTimeMillis() + limit).orElse(null);
+			return search(board, color, Instant.now().plusMillis(Math.max(0, limit - marginT))).orElse(null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
 		}
 	}
 
-	public Optional<Point> search(Board board, Color player, long endTime)
+	public Optional<Point> search(Board board, Color player, Instant deadline)
 	{
 		ArrayList<Candidate> candidates = new ArrayList<>();
 
@@ -61,12 +62,12 @@ public class MonteCarloUCB1AIPlayer implements Player {
 			new Candidate(candidates, player, board, p);
 		}
 
-		while(endTime - System.currentTimeMillis() > marginT)
+		while(Instant.now().isBefore(deadline))
 		{
 			for(Candidate c: candidates)
 			{
-				if(endTime - System.currentTimeMillis() <= marginT) break;
-				c.playout(rnd, endTime);
+				if(!Instant.now().isBefore(deadline)) break;
+				c.playout(rnd, deadline);
 			}
 		}
 

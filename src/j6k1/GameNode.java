@@ -1,5 +1,6 @@
 package j6k1;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -87,9 +88,9 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		}
 	}
 
-	public void playout(Random rnd, long endTime)
+	public void playout(Random rnd, Instant deadline)
 	{
-		if(endTime - System.currentTimeMillis() <= MonteCarloUCB1AIPlayer.marginT) return;
+		if(!Instant.now().isBefore(deadline)) return;
 
 		Point[] validPoints = Arrays.stream(points)
 				.filter(p -> Rule.canPutAt(board, player, p)).toArray(Point[]::new);
@@ -112,7 +113,9 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 		onAddNode();
 
-		if(!node.endNode) node.playout(rnd, endTime);
+		if(!node.endNode) node.playout(rnd, deadline);
+
+		if(!Instant.now().isBefore(deadline)) return;
 
 		assert nodeCount <= 10;
 

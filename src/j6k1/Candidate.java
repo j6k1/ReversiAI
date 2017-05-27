@@ -1,5 +1,6 @@
 package j6k1;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Optional;
 import java.util.Random;
@@ -29,11 +30,11 @@ public class Candidate {
 		return this.node;
 	}
 
-	public void playout(Random rnd, long endTime)
+	public void playout(Random rnd, Instant deadline)
 	{
 		if(!this.node.endNode)
 		{
-			this.node.playout(rnd, endTime);
+			this.node.playout(rnd, deadline);
 		}
 	}
 }

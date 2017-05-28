@@ -19,10 +19,13 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	private Random rnd;
 	protected static final long marginT = 100L;
 	protected Comparator<Candidate> candidateComparator = (a,b) -> {
-		if(a.node.win > b.node.win) return 1;
-		else if(a.node.win < b.node.win) return -1;
-		else if(a.node.loss < b.node.loss) return 1;
-		else if(a.node.loss > b.node.loss) return -1;
+		GameNode aNode = a.getRoot();
+		GameNode bNode = b.getRoot();
+
+		if(aNode.win > bNode.win) return 1;
+		else if(aNode.win < bNode.win) return -1;
+		else if(aNode.loss < bNode.loss) return 1;
+		else if(aNode.loss > bNode.loss) return -1;
 		else return 0;
 	};
 
@@ -71,6 +74,6 @@ public class MonteCarloUCB1AIPlayer implements Player {
 			}
 		}
 
-		return Collections.max(candidates, candidateComparator).node.getRoot().move;
+		return Collections.max(candidates, candidateComparator).getRoot().move;
 	}
 }

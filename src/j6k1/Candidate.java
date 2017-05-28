@@ -12,17 +12,21 @@ import xyz.hotchpotch.reversi.core.Point;
 public class Candidate {
 	public final ArrayList<Candidate> candidates;
 	protected GameNode node;
+	protected GameNode rootNode;
+	protected boolean tryAll;
 
 	public Candidate(ArrayList<Candidate> candidate, Color player, Board board, Point move)
 	{
 		this.candidates = candidate;
-		this.node = new GameNode(this, Optional.empty(), player, board, Optional.of(move));
+		this.rootNode = this.node = new GameNode(this, Optional.empty(), player, board, Optional.of(move));
+		this.tryAll = false;
 		this.candidates.add(this);
 	}
 
-	public void update(GameNode node)
+	public GameNode update(GameNode node)
 	{
-		this.node = node;
+		this.tryAll = true;
+		return (this.node = node);
 	}
 
 	public GameNode getNode()
@@ -30,11 +34,16 @@ public class Candidate {
 		return this.node;
 	}
 
+	public GameNode getRoot()
+	{
+		return this.rootNode;
+	}
+
 	public void playout(Random rnd, Instant deadline)
 	{
 		if(!this.node.endNode)
 		{
-			this.node.playout(rnd, deadline);
+			this.node.playout(rnd, deadline, tryAll);
 		}
 	}
 }

@@ -121,20 +121,17 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			if(lastChildrenCount == nextPoints.length && countOfNonTerminatedNode == 0) notExpand = true;
 		}
 
-		if(visitedCount > NumberOfNodesThreshold && !notExpand && countOfNonTerminatedNode > 0)
+		if(!tryAll && visitedCount > NumberOfNodesThreshold &&
+			!notExpand && countOfNonTerminatedNode > 0 && owner.getRoot() == this)
 		{
-			GameNode node = null;
-
-			if(!tryAll && owner.getRoot() == this)
-			{
-				node = this;
-				visitedCount = 0;
-			}
-			else
-			{
-				node = Collections.max(children, ucb1Comparator);
-			}
-			this.owner.update(node);
+			visitedCount = 0;
+			this.owner.update(this);
+			this.playout(rnd, deadline, true);
+		}
+		else if(tryAll && visitedCount > NumberOfNodesThreshold &&
+							!notExpand && countOfNonTerminatedNode > 0)
+		{
+			GameNode node = this.owner.update(Collections.max(children, ucb1Comparator));
 			node.playout(rnd, deadline, true);
 		}
 		else if(tryAll && nextPoints.length > 0)

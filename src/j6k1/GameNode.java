@@ -227,9 +227,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	protected double applyUcb1()
 	{
 		return (double)win / (double)nodeCount +
-				(Math.log(10.0) / Math.log(2.0)) *
-				getRoot()
-					.children.stream().mapToLong(n -> n.nodeCount).sum() / (double)nodeCount;
+				(Math.log(
+						getRoot()
+							.children.stream()
+							.mapToLong(n -> n.nodeCount).sum() / (double)nodeCount) / Math.log(2.0));
 	}
 
 	public GameNode getRoot()

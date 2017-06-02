@@ -14,7 +14,7 @@ import xyz.hotchpotch.reversi.framework.Player;
 
 public class MonteCarloUCB1AIPlayer implements Player {
 	private Random rnd;
-	protected static final long marginT = 100L;
+	protected static final long marginT = 300L;
 	protected Comparator<GameNode> candidateComparator = (a,b) -> {
 
 		if(a.win > b.win) return 1;
@@ -48,12 +48,21 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	{
 		GameNode rootNode = new GameNode(player, board);
 
-		while(Instant.now().isBefore(deadline))
+		if(!Instant.now().isBefore(deadline))
 		{
-			if(!Instant.now().isBefore(deadline)) break;
-			rootNode.playout(rnd, deadline);
+			if(rootNode.children.size() == 0) return Optional.empty();
+			else return rootNode.children.get(rnd.nextInt(rootNode.children.size())).move;
 		}
+		else
+		{
+			while(Instant.now().isBefore(deadline))
+			{
+				if(!Instant.now().isBefore(deadline)) break;
+				rootNode.playout(rnd, deadline);
+			}
 
-		return Collections.max(rootNode.children, candidateComparator).move;
+			if(rootNode.children.size() == 0) return Optional.empty();
+			else return Collections.max(rootNode.children, candidateComparator).move;
+		}
 	}
 }

@@ -47,6 +47,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	protected long win;
 	protected long loss;
 	protected boolean isExpand;
+	protected Optional<GameNode> lastExpandNode;
 	public boolean endNode;
 	protected final Color player;
 	protected final Board board;
@@ -78,6 +79,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 						.filter(p -> Rule.canPutAt(board, player, p)).toArray(Point[]::new);
 
 		this.isExpand = isExpand;
+		this.lastExpandNode = Optional.empty();
 		this.endNode = judgment();
 	}
 
@@ -106,17 +108,25 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		}
 	}
 
-	public void playout(Random rnd, Instant deadline)
+	public boolean playout(Random rnd, Instant deadline)
 	{
-		if(!Instant.now().isBefore(deadline)) return;
+		if(!Instant.now().isBefore(deadline)) return false;
 
 		visitedCount++;
 
 		if(visitedCount == NumberOfNodesThreshold + 1 && nextPoints.length > 0)
 		{
+			visitedCount = 0;
+			lastExpandNode.ifPresent(n -> {
+				n.isExpand = false;
+			});
 			GameNode node = Collections.max(children, ucb1Comparator);
 			node.isExpand = true;
-			if(!Instant.now().isBefore(deadline)) return;
+			if(!lastExpandNode.filter(n -> n == node).isPresent())
+			{
+				lastExpandNode = Optional.of(node);
+			}
+			if(!Instant.now().isBefore(deadline)) return false;
 		}
 
 		if(!isExpand)
@@ -149,10 +159,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 				newNode = false;
 			}
 
-			if(!node.endNode) node.playout(rnd, deadline);
+			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
 			else if(newNode) onAddNode();
 
-			if(!Instant.now().isBefore(deadline)) return;
+			if(!Instant.now().isBefore(deadline)) return false;
 		}
 		else if(nextPoints.length > 0)
 		{
@@ -177,10 +187,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 					newNode = false;
 				}
 
-				if(!node.endNode) node.playout(rnd, deadline);
+				if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
 				else if(newNode) onAddNode();
 
-				if(!Instant.now().isBefore(deadline)) return;
+				if(!Instant.now().isBefore(deadline)) return false;
 			}
 		}
 		else
@@ -203,11 +213,13 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 				newNode = false;
 			}
 
-			if(!node.endNode) node.playout(rnd, deadline);
+			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
 			else if(newNode) onAddNode();
 
-			if(!Instant.now().isBefore(deadline)) return;
+			if(!Instant.now().isBefore(deadline)) return false;
 		}
+
+		return true;
 	}
 
 	protected double applyUcb1()

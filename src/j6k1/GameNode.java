@@ -39,7 +39,6 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		for(int i=28, j=1; j < 7; j++) for(int k=1; k < 7; i++, k++) points[i] = Point.of(j, k);
 	}
 
-	protected final Candidate owner;
 	protected final ArrayList<GameNode> children;
 	protected final GameNode[] childrenMap;
 	protected final Optional<GameNode> parent;
@@ -47,17 +46,20 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	protected int visitedCount;
 	protected long win;
 	protected long loss;
-	protected boolean notExpand;
-	protected int lastChildrenCount;
-	protected long countOfNonTerminatedNode;
+	protected boolean isExpand;
 	public boolean endNode;
 	protected final Color player;
 	protected final Board board;
 	protected final Optional<Point> move;
 
-	public GameNode(Candidate owner, Optional<GameNode> parent, Color player, Board board, Optional<Point> move)
+	public GameNode(Color player, Board board)
 	{
-		this.owner = owner;
+		this(Optional.empty(), player, board, Optional.empty(), true);
+	}
+
+	protected GameNode(Optional<GameNode> parent, Color player,
+						Board board, Optional<Point> move, boolean isExpand)
+	{
 		this.parent = parent;
 		this.player = player;
 		this.move = move;
@@ -72,13 +74,11 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 		this.move.ifPresent(p -> this.board.apply(Move.of(player, p)));
 
-		nextPoints = Arrays.stream(points)
+		this.nextPoints = Arrays.stream(points)
 						.filter(p -> Rule.canPutAt(board, player, p)).toArray(Point[]::new);
 
-		notExpand = false;
-		lastChildrenCount = 0;
-		countOfNonTerminatedNode = 0;
-		endNode = judgment();
+		this.isExpand = isExpand;
+		this.endNode = judgment();
 	}
 
 	protected boolean judgment()
@@ -106,86 +106,20 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		}
 	}
 
-	public void playout(Random rnd, Instant deadline, boolean tryAll)
+	public void playout(Random rnd, Instant deadline)
 	{
 		if(!Instant.now().isBefore(deadline)) return;
 
 		visitedCount++;
 
-		int childrenCount = children.size();
-
-		if(!notExpand && childrenCount > 0 && childrenCount > lastChildrenCount)
+		if(visitedCount == NumberOfNodesThreshold + 1 && nextPoints.length > 0)
 		{
-			countOfNonTerminatedNode = children.stream().filter(n -> !n.endNode).count();
-			lastChildrenCount = childrenCount;
-			if(lastChildrenCount == nextPoints.length && countOfNonTerminatedNode == 0) notExpand = true;
+			GameNode node = Collections.max(children, ucb1Comparator);
+			node.isExpand = true;
+			if(!Instant.now().isBefore(deadline)) return;
 		}
 
-		if(!tryAll && visitedCount > NumberOfNodesThreshold &&
-			!notExpand && countOfNonTerminatedNode > 0 && owner.getRoot() == this)
-		{
-			visitedCount = 0;
-			this.owner.update(this);
-			this.playout(rnd, deadline, true);
-		}
-		else if(tryAll && visitedCount > NumberOfNodesThreshold &&
-							!notExpand && countOfNonTerminatedNode > 0)
-		{
-			GameNode node = this.owner.update(Collections.max(children, ucb1Comparator));
-			node.playout(rnd, deadline, true);
-		}
-		else if(tryAll && nextPoints.length > 0)
-		{
-			for(Point p: nextPoints)
-			{
-
-				int k = p.i * 8 + p.j;
-
-				boolean newNode = true;
-
-				GameNode node = null;
-
-				if(childrenMap[k] == null)
-				{
-					node = new GameNode(owner, Optional.of(this), player.opposite(), board, Optional.of(p));
-					children.add(node);
-					childrenMap[k] = node;
-				}
-				else
-				{
-					node = childrenMap[k];
-					newNode = false;
-				}
-
-				if(!node.endNode) node.playout(rnd, deadline, false);
-				else if(newNode) onAddNode();
-
-				if(!Instant.now().isBefore(deadline)) return;
-			}
-		}
-		else if(tryAll)
-		{
-			GameNode node = null;
-
-			int k = 64;
-			boolean newNode = true;
-
-			if(childrenMap[k] == null)
-			{
-				node = new GameNode(owner, Optional.of(this), player.opposite(), board, Optional.empty());
-				children.add(node);
-				childrenMap[k] = node;
-			}
-			else
-			{
-				node = childrenMap[k];
-				newNode = false;
-			}
-
-			if(!node.endNode) node.playout(rnd, deadline, false);
-			else if(newNode) onAddNode();
-		}
-		else
+		if(!isExpand)
 		{
 			Optional<Point> p;
 
@@ -205,7 +139,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 			if(childrenMap[k] == null)
 			{
-				node = new GameNode(owner, Optional.of(this), player.opposite(), board, p);
+				node = new GameNode(Optional.of(this), player.opposite(), board, p, false);
 				children.add(node);
 				childrenMap[k] = node;
 			}
@@ -215,19 +149,73 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 				newNode = false;
 			}
 
-			if(!node.endNode) node.playout(rnd, deadline, false);
+			if(!node.endNode) node.playout(rnd, deadline);
 			else if(newNode) onAddNode();
-		}
 
-		if(!Instant.now().isBefore(deadline)) return;
+			if(!Instant.now().isBefore(deadline)) return;
+		}
+		else if(nextPoints.length > 0)
+		{
+			for(Point p: nextPoints)
+			{
+
+				int k = p.i * 8 + p.j;
+
+				boolean newNode = true;
+
+				GameNode node = null;
+
+				if(childrenMap[k] == null)
+				{
+					node = new GameNode(Optional.of(this), player.opposite(), board, Optional.of(p), false);
+					children.add(node);
+					childrenMap[k] = node;
+				}
+				else
+				{
+					node = childrenMap[k];
+					newNode = false;
+				}
+
+				if(!node.endNode) node.playout(rnd, deadline);
+				else if(newNode) onAddNode();
+
+				if(!Instant.now().isBefore(deadline)) return;
+			}
+		}
+		else
+		{
+			int k = 64;
+
+			boolean newNode = true;
+
+			GameNode node = null;
+
+			if(childrenMap[k] == null)
+			{
+				node = new GameNode(Optional.of(this), player.opposite(), board, Optional.empty(), false);
+				children.add(node);
+				childrenMap[k] = node;
+			}
+			else
+			{
+				node = childrenMap[k];
+				newNode = false;
+			}
+
+			if(!node.endNode) node.playout(rnd, deadline);
+			else if(newNode) onAddNode();
+
+			if(!Instant.now().isBefore(deadline)) return;
+		}
 	}
 
 	protected double applyUcb1()
 	{
 		return (double)win / (double)nodeCount +
 				(Math.log(10.0) / Math.log(2.0)) *
-				(double)owner
-					.candidates.stream().mapToLong(c -> c.getNode().nodeCount).sum() / (double)nodeCount;
+				getRoot()
+					.children.stream().mapToLong(n -> n.nodeCount).sum() / (double)nodeCount;
 	}
 
 	public GameNode getRoot()

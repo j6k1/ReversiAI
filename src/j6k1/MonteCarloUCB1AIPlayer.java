@@ -17,10 +17,10 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	protected static final long marginT = 300L;
 	protected Comparator<GameNode> candidateComparator = (a,b) -> {
 
-		if(a.win > b.win) return 1;
-		else if(a.win < b.win) return -1;
-		else if(a.loss < b.loss) return 1;
-		else if(a.loss > b.loss) return -1;
+		if((double)a.win * (double)b.nodeCount > (double)b.win * (double)a.nodeCount) return 1;
+		else if((double)a.win * (double)b.nodeCount < (double)b.win * (double)a.nodeCount) return -1;
+		else if((double)a.loss * (double)b.nodeCount < (double)b.loss * (double)a.nodeCount) return 1;
+		else if((double)a.loss * (double)b.nodeCount > (double)b.loss * (double)a.nodeCount) return -1;
 		else return 0;
 	};
 

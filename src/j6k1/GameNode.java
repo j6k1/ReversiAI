@@ -44,7 +44,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	protected final Optional<GameNode> parent;
 	protected long nodeCount;
 	protected int visitedCount;
-	protected int tryCount;
+	protected boolean isExpand;
 	protected long win;
 	protected long loss;
 	protected Optional<GameNode> lastExpandNode;
@@ -68,7 +68,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		this.childrenMap = new GameNode[65];
 		this.nodeCount = 0;
 		this.visitedCount = 0;
-		this.tryCount = 1;
+		this.isExpand = isExpand;
 		this.win = 0;
 		this.loss = 0;
 
@@ -118,10 +118,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		{
 			visitedCount = 0;
 			lastExpandNode.ifPresent(n -> {
-				--n.tryCount;
+				n.isExpand = false;
 			});
 			GameNode node = Collections.max(children, ucb1Comparator);
-			++node.tryCount;
+			node.isExpand = true;
 			if(!lastExpandNode.filter(n -> n == node).isPresent())
 			{
 				lastExpandNode = Optional.of(node);
@@ -129,7 +129,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
 
-		if(!parent.isPresent() && nextPoints.length > 0)
+		if(isExpand && nextPoints.length > 0)
 		{
 			for(int i = 0, l = nextPoints.length; i < l; i++)
 			{
@@ -160,41 +160,38 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		}
 		else if(nextPoints.length > 0)
 		{
-			for(int i=0; i < tryCount; i++)
+			Optional<Point> p;
+
+			if(nextPoints.length > 0)
 			{
-				Optional<Point> p;
-
-				if(nextPoints.length > 0)
-				{
-					p = Optional.of(nextPoints[rnd.nextInt(nextPoints.length)]);
-				}
-				else
-				{
-					p = Optional.empty();
-				}
-
-				GameNode node = null;
-
-				int k = p.map(pt -> pt.i * 8 + pt.j).orElse(64);
-				boolean newNode = true;
-
-				if(childrenMap[k] == null)
-				{
-					node = new GameNode(Optional.of(this), player.opposite(), board, p, false);
-					children.add(node);
-					childrenMap[k] = node;
-				}
-				else
-				{
-					node = childrenMap[k];
-					newNode = false;
-				}
-
-				if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
-				else if(newNode) onAddNode();
-
-				if(!Instant.now().isBefore(deadline)) return false;
+				p = Optional.of(nextPoints[rnd.nextInt(nextPoints.length)]);
 			}
+			else
+			{
+				p = Optional.empty();
+			}
+
+			GameNode node = null;
+
+			int k = p.map(pt -> pt.i * 8 + pt.j).orElse(64);
+			boolean newNode = true;
+
+			if(childrenMap[k] == null)
+			{
+				node = new GameNode(Optional.of(this), player.opposite(), board, p, false);
+				children.add(node);
+				childrenMap[k] = node;
+			}
+			else
+			{
+				node = childrenMap[k];
+				newNode = false;
+			}
+
+			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
+			else if(newNode) onAddNode();
+
+			if(!Instant.now().isBefore(deadline)) return false;
 		}
 		else
 		{

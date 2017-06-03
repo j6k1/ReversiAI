@@ -112,9 +112,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	{
 		if(!Instant.now().isBefore(deadline)) return false;
 
-		visitedCount++;
-
-		if(visitedCount == NumberOfNodesThreshold + 1 && nextPoints.length > 0)
+		if(visitedCount == NumberOfNodesThreshold && nextPoints.length > 0)
 		{
 			visitedCount = 0;
 			lastExpandNode.ifPresent(n -> {
@@ -128,6 +126,8 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			}
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
+
+		visitedCount++;
 
 		if(isExpand && nextPoints.length > 0)
 		{

@@ -29,6 +29,13 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		return ucb1A < ucb1B ? -1 : ucb1A > ucb1B ? 1 : 0;
 	};
 
+	protected Comparator<GameNode> negativeUcb1Comparator = (a,b) -> {
+		double ucb1A = a.endNode ? -1.0 : a.applyUcb1();
+		double ucb1B = b.endNode ? -1.0 : b.applyUcb1();
+
+		return ucb1A > ucb1B ? -1 : ucb1A < ucb1B ? 1 : 0;
+	};
+
 	static {
 		points[0] = Point.of(0,0);
 		points[1] = Point.of(0,7);
@@ -45,6 +52,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 	protected final ArrayList<GameNode> children;
 	protected final GameNode[] childrenMap;
 	protected final Optional<GameNode> parent;
+	protected final GameNode root;
 	protected long nodeCount;
 	protected int visitedCount;
 	protected boolean isExpand;
@@ -74,6 +82,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		this.isExpand = isExpand;
 		this.win = 0;
 		this.loss = 0;
+		this.root = getRoot();
 
 		this.board = new AIPlayerUtil.LightweightBoard(board);
 
@@ -129,8 +138,20 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 			lastExpandNode.ifPresent(n -> {
 				n.isExpand = false;
 			});
-			GameNode node = Collections.max(children, ucb1Comparator);
+
+			final GameNode node;
+
+			if(this.player == this.root.player)
+			{
+				node = Collections.max(children, negativeUcb1Comparator);
+			}
+			else
+			{
+				 node = Collections.max(children, ucb1Comparator);
+			}
+
 			node.isExpand = true;
+
 			if(!lastExpandNode.filter(n -> n == node).isPresent())
 			{
 				lastExpandNode = Optional.of(node);

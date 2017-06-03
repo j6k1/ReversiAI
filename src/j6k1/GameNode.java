@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.Optional;
 import java.util.Random;
 
@@ -15,10 +16,12 @@ import xyz.hotchpotch.reversi.core.Move;
 import xyz.hotchpotch.reversi.core.Point;
 import xyz.hotchpotch.reversi.core.Rule;
 
-public class GameNode implements IOnWon, IOnLost, IOnAddNode {
+public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated {
 	public final static int NumberOfNodesThreshold = 10;
 	public final static Point[] points = new Point[64];
-	protected final Point[] nextPoints;
+	protected final ArrayList<Point> nextPoints;
+	protected int candidateCount;
+	protected boolean pass;
 	protected Comparator<GameNode> ucb1Comparator = (a,b) -> {
 		double ucb1A = a.endNode ? -1.0 : a.applyUcb1();
 		double ucb1B = b.endNode ? -1.0 : b.applyUcb1();
@@ -76,8 +79,16 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 		this.move.ifPresent(p -> this.board.apply(Move.of(player, p)));
 
-		this.nextPoints = Arrays.stream(points)
-						.filter(p -> Rule.canPutAt(board, player, p)).toArray(Point[]::new);
+		Iterator<Point> it = Arrays.stream(points)
+								.filter(p -> Rule.canPutAt(board, player, p)).iterator();
+
+		this.nextPoints = new ArrayList<>();
+
+		while(it.hasNext()) this.nextPoints.add(it.next());
+
+		this.pass = this.nextPoints.size() == 0;
+
+		this.candidateCount = !this.pass ? this.nextPoints.size() : 1;
 
 		this.lastExpandNode = Optional.empty();
 		this.endNode = judgment();
@@ -112,7 +123,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	{
 		if(!Instant.now().isBefore(deadline)) return false;
 
-		if(visitedCount == NumberOfNodesThreshold && nextPoints.length > 0)
+		if(visitedCount == NumberOfNodesThreshold && nextPoints.size() > 0)
 		{
 			visitedCount = 0;
 			lastExpandNode.ifPresent(n -> {
@@ -129,16 +140,15 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 
 		visitedCount++;
 
-		if(isExpand && nextPoints.length > 0)
+		if(isExpand && nextPoints.size() > 0)
 		{
-			for(int i = 0, l = nextPoints.length; i < l; i++)
+			for(int i = 0, l = nextPoints.size(); i < l; i++)
 			{
-				Optional<Point> p = Optional.of(nextPoints[i]);
+				Optional<Point> p = Optional.of(nextPoints.get(i));
 
 				GameNode node = null;
 
 				int k = p.map(pt -> pt.i * 8 + pt.j).orElse(64);
-				boolean newNode = true;
 
 				if(childrenMap[k] == null)
 				{
@@ -149,32 +159,32 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 				else
 				{
 					node = childrenMap[k];
-					newNode = false;
 				}
 
 				if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
-				else if(newNode) node.onAddNode();
+				else node.onAddNode();
+
+				if(node.endNode)
+				{
+					final int count = node.onNodeTerminated(i);
+					--i;
+					--l;
+					if(count == 0) this.endNode = true;
+				}
 
 				if(!Instant.now().isBefore(deadline)) return false;
 			}
 		}
-		else if(nextPoints.length > 0)
+		else if(nextPoints.size() > 0)
 		{
 			Optional<Point> p;
 
-			if(nextPoints.length > 0)
-			{
-				p = Optional.of(nextPoints[rnd.nextInt(nextPoints.length)]);
-			}
-			else
-			{
-				p = Optional.empty();
-			}
+			final int moveIndex = rnd.nextInt(nextPoints.size());
+			p = Optional.of(nextPoints.get(moveIndex));
 
 			GameNode node = null;
 
 			int k = p.map(pt -> pt.i * 8 + pt.j).orElse(64);
-			boolean newNode = true;
 
 			if(childrenMap[k] == null)
 			{
@@ -185,20 +195,20 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			else
 			{
 				node = childrenMap[k];
-				newNode = false;
 			}
 
 			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
-			else if(newNode) node.onAddNode();
+			else node.onAddNode();
+
+			if(node.endNode && node.onNodeTerminated(moveIndex) == 0) this.endNode = true;
 
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
-		else
+		else if(pass && candidateCount == 1)
 		{
 			GameNode node = null;
 
 			int k = 64;
-			boolean newNode = true;
 
 			if(childrenMap[k] == null)
 			{
@@ -209,11 +219,12 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			else
 			{
 				node = childrenMap[k];
-				newNode = false;
 			}
 
 			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
-			else if(newNode) node.onAddNode();
+			else node.onAddNode();
+
+			if(node.endNode && node.onNodeTerminated(-1) == 0) this.endNode = true;
 
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
@@ -234,10 +245,25 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 		else return parent.map(p -> p.getRoot()).get();
 	}
 
+	public boolean searchEnded()
+	{
+		return candidateCount == 0;
+	}
+
 	@Override
 	public void onAddNode() {
 		this.nodeCount++;
 		parent.ifPresent(p -> p.onAddNode());
+	}
+
+	@Override
+	public int onNodeTerminated(int index) {
+		if(index != -1) parent.ifPresent(p -> p.nextPoints.remove(index));
+
+		return parent.map(p -> {
+			p.candidateCount--;
+			return p.candidateCount;
+		}).orElse(0);
 	}
 
 	@Override

@@ -55,7 +55,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 		}
 		else
 		{
-			while(Instant.now().isBefore(deadline))
+			while(Instant.now().isBefore(deadline) && !rootNode.searchEnded())
 			{
 				rootNode.playout(rnd, deadline);
 			}

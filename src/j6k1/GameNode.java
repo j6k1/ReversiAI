@@ -153,7 +153,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 				}
 
 				if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
-				else if(newNode) onAddNode();
+				else if(newNode) node.onAddNode();
 
 				if(!Instant.now().isBefore(deadline)) return false;
 			}
@@ -189,7 +189,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			}
 
 			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
-			else if(newNode) onAddNode();
+			else if(newNode) node.onAddNode();
 
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
@@ -213,7 +213,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 			}
 
 			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
-			else if(newNode) onAddNode();
+			else if(newNode) node.onAddNode();
 
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
@@ -225,9 +225,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode {
 	{
 		return (double)win / (double)nodeCount +
 				Math.sqrt(2.0 * Math.log(
-						getRoot()
-							.children.stream()
-							.mapToLong(n -> n.nodeCount).sum()) / (double)nodeCount) * 0.5;
+						parent.map(p ->	p.nodeCount).orElse(nodeCount)) / (double)nodeCount) * 0.5;
 	}
 
 	public GameNode getRoot()

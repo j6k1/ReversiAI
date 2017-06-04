@@ -51,7 +51,6 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 	protected boolean isExpand;
 	protected long win;
 	protected long loss;
-	protected Optional<GameNode> lastExpandNode;
 	public boolean endNode;
 	protected final Color player;
 	protected final Board board;
@@ -92,7 +91,6 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 		this.candidateCount = !this.pass ? this.nextPoints.size() : 1;
 
-		this.lastExpandNode = Optional.empty();
 		this.endNode = judgment();
 	}
 
@@ -108,13 +106,15 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		}
 		else
 		{
+			// このノードの手に応じるプレイヤーはplayerだが、
+			// このノード自身のプレイヤーはplayer.opposite()
 			if(Rule.winner(board) == player)
 			{
-				onWon();
+				onLost();
 			}
 			else
 			{
-				onLost();
+				onWon();
 			}
 
 			return true;
@@ -128,25 +128,13 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		if(visitedCount == NumberOfNodesThreshold &&
 				nextPoints.size() > 0 && this.player == this.root.player)
 		{
-			visitedCount = 0;
-			lastExpandNode.ifPresent(n -> {
-				n.isExpand = false;
-			});
-
-			final GameNode node;
-
-			node = Collections.max(children, ucb1Comparator);
+			GameNode node = Collections.max(children, ucb1Comparator);
 
 			node.isExpand = true;
-
-			if(!lastExpandNode.filter(n -> n == node).isPresent())
-			{
-				lastExpandNode = Optional.of(node);
-			}
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
 
-		visitedCount++;
+		++visitedCount;
 
 		if(isExpand && nextPoints.size() > 0)
 		{

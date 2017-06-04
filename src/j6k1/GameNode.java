@@ -126,7 +126,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		if(!Instant.now().isBefore(deadline)) return false;
 
 		if(visitedCount == NumberOfNodesThreshold &&
-				nextPoints.size() > 0 && this.player != this.root.player)
+				nextPoints.size() > 0 && this.player == this.root.player)
 		{
 			visitedCount = 0;
 			lastExpandNode.ifPresent(n -> {

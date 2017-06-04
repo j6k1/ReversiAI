@@ -209,6 +209,8 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 			int k = 64;
 
+			boolean newNode = true;
+
 			if(childrenMap[k] == null)
 			{
 				node = new GameNode(Optional.of(this), player.opposite(), board, Optional.empty(), false);
@@ -218,13 +220,14 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 			else
 			{
 				node = childrenMap[k];
+				newNode = false;
 			}
 
 			if(!node.endNode)
 			{
 				if(!node.playout(rnd, deadline, numberOfNodesThreshold)) return false;
 			}
-			else node.onAddNode();
+			else if(newNode) node.onAddNode();
 
 			if(node.endNode && node.onNodeTerminated(-1) == 0) this.endNode = true;
 

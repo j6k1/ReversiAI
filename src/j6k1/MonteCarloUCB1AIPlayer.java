@@ -7,14 +7,17 @@ import java.util.Comparator;
 import java.util.Optional;
 import java.util.Random;
 
+import xyz.hotchpotch.reversi.aiplayers.AIPlayerUtil;
 import xyz.hotchpotch.reversi.core.Board;
 import xyz.hotchpotch.reversi.core.Color;
 import xyz.hotchpotch.reversi.core.Point;
+import xyz.hotchpotch.reversi.framework.GameCondition;
 import xyz.hotchpotch.reversi.framework.Player;
 
 public class MonteCarloUCB1AIPlayer implements Player {
 	private Random rnd;
 	protected static final long marginT = 300L;
+	protected final boolean debug;
 	protected Comparator<GameNode> candidateComparator = (a,b) -> {
 
 		if((double)a.win * (double)b.nodeCount > (double)b.win * (double)a.nodeCount) return 1;
@@ -25,9 +28,10 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	};
 
 
-	public MonteCarloUCB1AIPlayer()
+	public MonteCarloUCB1AIPlayer(Color color, GameCondition gameCondition)
 	{
 		rnd = new Random();
+		debug = AIPlayerUtil.getBooleanParameter(gameCondition, "debug").orElse(false);
 	}
 
 	@Override
@@ -58,6 +62,12 @@ public class MonteCarloUCB1AIPlayer implements Player {
 			while(Instant.now().isBefore(deadline) && !rootNode.searchEnded())
 			{
 				rootNode.playout(rnd, deadline);
+			}
+
+			if(debug)
+			{
+				rootNode.children
+					.forEach(c -> System.out.println(String.format("win = %d, nodeCount = %d", c.win, c.nodeCount)));
 			}
 
 			if(rootNode.children.size() == 0) return Optional.empty();

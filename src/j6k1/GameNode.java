@@ -169,7 +169,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 					node = childrenMap[k];
 				}
 
-				if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
+				if(!node.endNode)
+				{
+					if(!node.playout(rnd, deadline)) return false;
+				}
 				else node.onAddNode();
 
 				if(node.endNode)
@@ -205,7 +208,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 				node = childrenMap[k];
 			}
 
-			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
+			if(!node.endNode)
+			{
+				if(!node.playout(rnd, deadline)) return false;
+			}
 			else node.onAddNode();
 
 			if(node.endNode && node.onNodeTerminated(moveIndex) == 0) this.endNode = true;
@@ -229,7 +235,10 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 				node = childrenMap[k];
 			}
 
-			if(!node.endNode) if(!node.playout(rnd, deadline)) return false;
+			if(!node.endNode)
+			{
+				if(!node.playout(rnd, deadline)) return false;
+			}
 			else node.onAddNode();
 
 			if(node.endNode && node.onNodeTerminated(-1) == 0) this.endNode = true;

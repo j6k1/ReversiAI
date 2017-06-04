@@ -18,6 +18,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	private Random rnd;
 	protected static final long marginT = 300L;
 	protected final boolean debug;
+	protected final int numberOfNodesThreshold;
 	protected Comparator<GameNode> candidateComparator = (a,b) -> {
 
 		if((double)a.win * (double)b.nodeCount > (double)b.win * (double)a.nodeCount) return 1;
@@ -32,6 +33,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	{
 		rnd = new Random();
 		debug = AIPlayerUtil.getBooleanParameter(gameCondition, "debug").orElse(false);
+		numberOfNodesThreshold = AIPlayerUtil.getIntParameter(gameCondition, "threshold").orElse(10);
 	}
 
 	@Override
@@ -61,7 +63,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 		{
 			while(Instant.now().isBefore(deadline) && !rootNode.searchEnded())
 			{
-				rootNode.playout(rnd, deadline);
+				rootNode.playout(rnd, deadline, numberOfNodesThreshold);
 			}
 
 			if(debug)

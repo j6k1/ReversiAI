@@ -17,7 +17,6 @@ import xyz.hotchpotch.reversi.core.Point;
 import xyz.hotchpotch.reversi.core.Rule;
 
 public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated {
-	public final static int NumberOfNodesThreshold = 10;
 	public final static Point[] points = new Point[64];
 	protected final ArrayList<Point> nextPoints;
 	protected int candidateCount;
@@ -121,11 +120,11 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		}
 	}
 
-	public boolean playout(Random rnd, Instant deadline)
+	public boolean playout(Random rnd, Instant deadline, int numberOfNodesThreshold)
 	{
 		if(!Instant.now().isBefore(deadline)) return false;
 
-		if(visitedCount == NumberOfNodesThreshold &&
+		if(visitedCount == numberOfNodesThreshold &&
 				nextPoints.size() > 0 && this.player == this.root.player)
 		{
 			GameNode node = Collections.max(children, ucb1Comparator);
@@ -159,7 +158,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 				if(!node.endNode)
 				{
-					if(!node.playout(rnd, deadline)) return false;
+					if(!node.playout(rnd, deadline, numberOfNodesThreshold)) return false;
 				}
 				else node.onAddNode();
 
@@ -198,7 +197,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 			if(!node.endNode)
 			{
-				if(!node.playout(rnd, deadline)) return false;
+				if(!node.playout(rnd, deadline, numberOfNodesThreshold)) return false;
 			}
 			else node.onAddNode();
 
@@ -225,7 +224,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 			if(!node.endNode)
 			{
-				if(!node.playout(rnd, deadline)) return false;
+				if(!node.playout(rnd, deadline, numberOfNodesThreshold)) return false;
 			}
 			else node.onAddNode();
 
@@ -239,7 +238,9 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 	protected double applyUcb1()
 	{
-		return (double)win / (double)nodeCount +
+		// 計算しなければならないのはchildrenの各ノードに対して打ったプレイヤー、つまりchildrenの各ノードのplayerの相手なので、
+		// winではなくlossを使って計算するのが正しい。
+		return (double)loss / (double)nodeCount +
 				Math.sqrt(2.0 * Math.log(
 						parent.map(p ->	p.nodeCount).orElse(nodeCount)) / (double)nodeCount) * 0.5;
 	}

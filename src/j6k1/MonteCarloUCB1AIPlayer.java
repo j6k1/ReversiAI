@@ -21,10 +21,14 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	protected final int numberOfNodesThreshold;
 	protected Comparator<GameNode> candidateComparator = (a,b) -> {
 
-		if((double)a.win * (double)b.nodeCount > (double)b.win * (double)a.nodeCount) return 1;
-		else if((double)a.win * (double)b.nodeCount < (double)b.win * (double)a.nodeCount) return -1;
-		else if((double)a.loss * (double)b.nodeCount < (double)b.loss * (double)a.nodeCount) return 1;
-		else if((double)a.loss * (double)b.nodeCount > (double)b.loss * (double)a.nodeCount) return -1;
+		/*
+		 * 一手目として生成されたノードのプレイヤーは自分ではなく相手であるため、winではなくlossを使って勝率を計算するのが正しい。
+		 * 勝率が同率で敗北率で判定する場合、同様の理由によりlossではなくwinを使って計算する。
+		 */
+		if((double)a.loss * (double)b.nodeCount > (double)b.loss * (double)a.nodeCount) return 1;
+		else if((double)a.loss * (double)b.nodeCount < (double)b.loss * (double)a.nodeCount) return -1;
+		else if((double)a.win * (double)b.nodeCount < (double)b.win * (double)a.nodeCount) return 1;
+		else if((double)a.win * (double)b.nodeCount > (double)b.win * (double)a.nodeCount) return -1;
 		else return 0;
 	};
 
@@ -52,7 +56,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 
 	public Optional<Point> search(Board board, Color player, Instant deadline)
 	{
-		GameNode rootNode = new GameNode(player.opposite(), board);
+		GameNode rootNode = new GameNode(player, board);
 
 		if(!Instant.now().isBefore(deadline))
 		{

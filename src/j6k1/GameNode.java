@@ -60,11 +60,11 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		this(Optional.empty(), player, board, Optional.empty(), true);
 	}
 
-	protected GameNode(Optional<GameNode> parent, Color opponent,
+	protected GameNode(Optional<GameNode> parent, Color player,
 						Board board, Optional<Point> move, boolean isExpand)
 	{
 		this.parent = parent;
-		this.player = opponent.opposite();
+		this.player = player;
 		this.move = move;
 		this.children = new ArrayList<>();
 		this.childrenMap = new GameNode[65];
@@ -77,7 +77,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 		this.board = new AIPlayerUtil.LightweightBoard(board);
 
-		this.move.ifPresent(p -> this.board.apply(Move.of(opponent, p)));
+		this.move.ifPresent(p -> this.board.apply(Move.of(player.opposite(), p)));
 
 		Iterator<Point> it = Arrays.stream(points)
 								.filter(p -> Rule.canPutAt(board, player, p)).iterator();
@@ -105,15 +105,13 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		}
 		else
 		{
-			// このノードの手に応じるプレイヤーはplayerだが、
-			// このノード自身のプレイヤーはplayer.opposite()
 			if(Rule.winner(board) == player)
 			{
-				onLost();
+				onWon();
 			}
 			else
 			{
-				onWon();
+				onLost();
 			}
 
 			return true;
@@ -147,7 +145,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 				if(childrenMap[k] == null)
 				{
-					node = new GameNode(Optional.of(this), player, board, p, false);
+					node = new GameNode(Optional.of(this), player.opposite(), board, p, false);
 					children.add(node);
 					childrenMap[k] = node;
 				}
@@ -186,7 +184,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 			if(childrenMap[k] == null)
 			{
-				node = new GameNode(Optional.of(this), player, board, p, false);
+				node = new GameNode(Optional.of(this), player.opposite(), board, p, false);
 				children.add(node);
 				childrenMap[k] = node;
 			}
@@ -213,7 +211,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 			if(childrenMap[k] == null)
 			{
-				node = new GameNode(Optional.of(this), player, board, Optional.empty(), false);
+				node = new GameNode(Optional.of(this), player.opposite(), board, Optional.empty(), false);
 				children.add(node);
 				childrenMap[k] = node;
 			}

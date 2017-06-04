@@ -50,7 +50,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 
 	public Optional<Point> search(Board board, Color player, Instant deadline)
 	{
-		GameNode rootNode = new GameNode(player, board);
+		GameNode rootNode = new GameNode(player.opposite(), board);
 
 		if(!Instant.now().isBefore(deadline))
 		{

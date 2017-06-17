@@ -47,7 +47,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 	protected final GameNode root;
 	protected long nodeCount;
 	protected int visitedCount;
-	protected boolean isExpand;
+	protected int tryCount;
 	protected long win;
 	protected long loss;
 	public boolean endNode;
@@ -70,7 +70,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		this.childrenMap = new GameNode[65];
 		this.nodeCount = 0;
 		this.visitedCount = 0;
-		this.isExpand = isExpand;
+		this.tryCount = 1;
 		this.win = 0;
 		this.loss = 0;
 		this.root = getRoot();
@@ -122,22 +122,24 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 	{
 		if(!Instant.now().isBefore(deadline)) return false;
 
-		if(visitedCount == numberOfNodesThreshold &&
+		if(visitedCount > 0 && visitedCount % numberOfNodesThreshold  == 0 &&
 				nextPoints.size() > 0 && this.player == this.root.player)
 		{
 			GameNode node = Collections.max(children, ucb1Comparator);
 
-			node.isExpand = true;
+			++node.tryCount;
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
 
 		++visitedCount;
 
-		if(isExpand && nextPoints.size() > 0)
+		if(this == root && nextPoints.size() > 0)
 		{
-			for(int i = 0, l = nextPoints.size(); i < l; i++)
+			for(int i=0, l=nextPoints.size(); i < l; i++)
 			{
-				Optional<Point> p = Optional.of(nextPoints.get(i));
+				Optional<Point> p;
+
+				p = Optional.of(nextPoints.get(i));
 
 				GameNode node = null;
 
@@ -162,10 +164,9 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 
 				if(node.endNode)
 				{
-					final int count = node.onNodeTerminated(i);
+					if(node.onNodeTerminated(i) == 0) this.endNode = true;
 					--i;
 					--l;
-					if(count == 0) this.endNode = true;
 				}
 
 				if(!Instant.now().isBefore(deadline)) return false;
@@ -173,35 +174,40 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		}
 		else if(nextPoints.size() > 0)
 		{
-			Optional<Point> p;
-
-			final int moveIndex = rnd.nextInt(nextPoints.size());
-			p = Optional.of(nextPoints.get(moveIndex));
-
-			GameNode node = null;
-
-			int k = p.map(pt -> pt.i * 8 + pt.j).orElse(64);
-
-			if(childrenMap[k] == null)
+			for(int i=0; i < tryCount; i++)
 			{
-				node = new GameNode(Optional.of(this), player.opposite(), board, p, false);
-				children.add(node);
-				childrenMap[k] = node;
-			}
-			else
-			{
-				node = childrenMap[k];
-			}
+				Optional<Point> p;
 
-			if(!node.endNode)
-			{
-				if(!node.playout(rnd, deadline, numberOfNodesThreshold)) return false;
+				final int moveIndex = rnd.nextInt(nextPoints.size());
+				p = Optional.of(nextPoints.get(moveIndex));
+
+				GameNode node = null;
+
+				int k = p.map(pt -> pt.i * 8 + pt.j).orElse(64);
+
+				if(childrenMap[k] == null)
+				{
+					node = new GameNode(Optional.of(this), player.opposite(), board, p, false);
+					children.add(node);
+					childrenMap[k] = node;
+				}
+				else
+				{
+					node = childrenMap[k];
+				}
+
+				if(!node.endNode)
+				{
+					if(!node.playout(rnd, deadline, numberOfNodesThreshold)) return false;
+				}
+				else node.onAddNode();
+
+				if(node.endNode && node.onNodeTerminated(moveIndex) == 0) this.endNode = true;
+
+				if(!Instant.now().isBefore(deadline)) return false;
+
+				if(nextPoints.size() == 0) break;
 			}
-			else node.onAddNode();
-
-			if(node.endNode && node.onNodeTerminated(moveIndex) == 0) this.endNode = true;
-
-			if(!Instant.now().isBefore(deadline)) return false;
 		}
 		else if(pass && candidateCount == 1)
 		{

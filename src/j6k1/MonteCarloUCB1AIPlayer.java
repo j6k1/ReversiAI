@@ -37,7 +37,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	{
 		rnd = new Random();
 		debug = AIPlayerUtil.getBooleanParameter(gameCondition, "debug").orElse(false);
-		numberOfNodesThreshold = AIPlayerUtil.getIntParameter(gameCondition, "threshold").orElse(10);
+		numberOfNodesThreshold = AIPlayerUtil.getIntParameter(gameCondition, "threshold").orElse(100);
 	}
 
 	@Override
@@ -73,7 +73,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 			if(debug)
 			{
 				rootNode.children
-					.forEach(c -> System.out.println(String.format("win = %d, nodeCount = %d", c.win, c.nodeCount)));
+					.forEach(c -> System.out.println(String.format("win = %d, nodeCount = %d", c.loss, c.nodeCount)));
 			}
 
 			if(rootNode.children.size() == 0) return Optional.empty();

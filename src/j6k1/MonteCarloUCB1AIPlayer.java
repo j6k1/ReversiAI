@@ -22,10 +22,15 @@ public class MonteCarloUCB1AIPlayer implements Player {
 	protected Comparator<GameNode> candidateComparator = (a,b) -> {
 
 		/*
+		 * ノードがendNode(全手読み切っている)でかつ全ノードで負けている（相手のノードなので自分の勝利）の場合、
+		 * それが優先的に選択されるようにする。
 		 * 一手目として生成されたノードのプレイヤーは自分ではなく相手であるため、winではなくlossを使って勝率を計算するのが正しい。
 		 * 勝率が同率で敗北率で判定する場合、同様の理由によりlossではなくwinを使って計算する。
 		 */
-		if((double)a.loss * (double)b.nodeCount > (double)b.loss * (double)a.nodeCount) return 1;
+		if(a.endNode && a.loss == a.nodeCount && b.endNode && b.loss == b.nodeCount) return 0;
+		else if(a.endNode && a.loss == a.nodeCount) return 1;
+		else if(b.endNode && b.loss == b.nodeCount) return -1;
+		else if((double)a.loss * (double)b.nodeCount > (double)b.loss * (double)a.nodeCount) return 1;
 		else if((double)a.loss * (double)b.nodeCount < (double)b.loss * (double)a.nodeCount) return -1;
 		else if((double)a.win * (double)b.nodeCount < (double)b.win * (double)a.nodeCount) return 1;
 		else if((double)a.win * (double)b.nodeCount > (double)b.win * (double)a.nodeCount) return -1;
@@ -67,7 +72,7 @@ public class MonteCarloUCB1AIPlayer implements Player {
 		{
 			while(Instant.now().isBefore(deadline) && !rootNode.searchEnded())
 			{
-				rootNode.playout(rnd, deadline, numberOfNodesThreshold);
+				if(rootNode.playout(rnd, deadline, numberOfNodesThreshold) == false) break;
 			}
 
 			if(debug)

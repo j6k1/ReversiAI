@@ -22,8 +22,8 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 	protected int candidateCount;
 	protected boolean pass;
 	protected Comparator<GameNode> ucb1Comparator = (a,b) -> {
-		double ucb1A = a.endNode ? -1.0 : a.applyUcb1();
-		double ucb1B = b.endNode ? -1.0 : b.applyUcb1();
+		double ucb1A = (a.endNode || a.candidateCount <= a.tryCount) ? -1.0 : a.applyUcb1();
+		double ucb1B = (b.endNode || b.candidateCount <= b.tryCount) ? -1.0 : b.applyUcb1();
 
 		return ucb1A < ucb1B ? -1 : ucb1A > ucb1B ? 1 : 0;
 	};
@@ -127,13 +127,13 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		{
 			GameNode node = Collections.max(children, ucb1Comparator);
 
-			++node.tryCount;
+			if(node.tryCount < node.nextPoints.size()) ++node.tryCount;
 			if(!Instant.now().isBefore(deadline)) return false;
 		}
 
 		++visitedCount;
 
-		if(this == root && nextPoints.size() > 0)
+		if(nextPoints.size() > 0 && (this == root || tryCount >= nextPoints.size()))
 		{
 			for(int i=0, l=nextPoints.size(); i < l; i++)
 			{
@@ -249,7 +249,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		// winではなくlossを使って計算するのが正しい。
 		return (double)loss / (double)nodeCount +
 				Math.sqrt(2.0 * Math.log(
-						parent.map(p ->	p.nodeCount).orElse(nodeCount)) / (double)nodeCount) * 0.3;
+						parent.map(p ->	p.nodeCount).orElse(nodeCount)) / (double)nodeCount) * 0.5;
 	}
 
 	public GameNode getRoot()

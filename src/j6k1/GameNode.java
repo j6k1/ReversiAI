@@ -249,7 +249,7 @@ public class GameNode implements IOnWon, IOnLost, IOnAddNode, IOnNodeTerminated 
 		// winではなくlossを使って計算するのが正しい。
 		return (double)loss / (double)nodeCount +
 				Math.sqrt(2.0 * Math.log(
-						parent.map(p ->	p.nodeCount).orElse(nodeCount)) / (double)nodeCount) * 0.5;
+						parent.map(p ->	p.nodeCount).orElse(nodeCount)) / (double)nodeCount) * 0.3;
 	}
 
 	public GameNode getRoot()

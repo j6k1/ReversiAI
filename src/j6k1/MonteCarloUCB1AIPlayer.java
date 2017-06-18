@@ -60,8 +60,8 @@ public class MonteCarloUCB1AIPlayer implements Player {
 
 		if(!Instant.now().isBefore(deadline))
 		{
-			if(rootNode.children.size() == 0) return Optional.empty();
-			else return rootNode.children.get(rnd.nextInt(rootNode.children.size())).move;
+			if(rootNode.nextPoints.size() == 0) return Optional.empty();
+			else return Optional.of(rootNode.nextPoints.get(rnd.nextInt(rootNode.nextPoints.size())));
 		}
 		else
 		{

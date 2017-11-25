@@ -15,7 +15,7 @@ public class SortedHandABAIPlayer extends BaseABAIPlayer {
 	{
 		super(color, gameCondition);
 		handIteratorFactory = (board, st) -> {
-			final List<Point> points = st.sorted((a,b) -> {
+			return st.sorted((a,b) -> {
 				Move ma = Move.of(color, a);
 				Move mb = Move.of(color, b);
 
@@ -23,9 +23,7 @@ public class SortedHandABAIPlayer extends BaseABAIPlayer {
 				int sb = Rule.reversibles(board, mb).size();
 
 				return (sa == sb) ? 0 : sa > sb ? -1 : 1;
-			}).collect(Collectors.toList());
-
-			return points.iterator();
+			}).iterator();
 		};
 	}
 }

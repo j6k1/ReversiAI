@@ -22,7 +22,7 @@ public class SortedHandABAIPlayer extends BaseABAIPlayer {
 				int sa = Rule.reversibles(board, ma).size();
 				int sb = Rule.reversibles(board, mb).size();
 
-				return (sa == sb) ? 0 : sa > sb ? 1 : -1;
+				return (sa == sb) ? 0 : sa > sb ? -1 : 1;
 			}).collect(Collectors.toList());
 
 			return points.iterator();

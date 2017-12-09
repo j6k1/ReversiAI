@@ -14,7 +14,7 @@ public class RandomChoiceABAIPlayer extends BaseABAIPlayer {
 	{
 		super(color, gameCondition);
 
-		handIteratorFactory = (board, st) -> {
+		handIteratorFactory = (player, board, st) -> {
 			final List<Point> points = st.collect(Collectors.toList());
 			final Random rnd = new Random();;
 

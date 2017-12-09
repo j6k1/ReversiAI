@@ -3,6 +3,7 @@ package j6k1;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.Optional;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
@@ -17,10 +18,9 @@ import xyz.hotchpotch.reversi.framework.Player;
 
 public abstract class BaseABAIPlayer implements Player {
 	protected static Point[] points = new Point[64];
-	protected static final double cost = 4.6;
+	protected static final double cost = 2.7;
 	protected static final long marginT = 50L;
-	protected BiFunction<Board, Stream<Point>, Iterator<Point>> handIteratorFactory;
-
+	protected IABHandIteratorFactory handIteratorFactory;
 	static {
 		points[0] = Point.of(0,0);
 		points[1] = Point.of(0,7);
@@ -49,8 +49,9 @@ public abstract class BaseABAIPlayer implements Player {
 			int ply = calcDepth(limit, 1.0, 1);
 
 			return alphabeta(board, ply, color, color.opposite(),
-							MoveEvaluation.Minimum, MoveEvaluation.Maximum,
-							0, 0, Instant.now().plusMillis(Math.max(0, limit / 1000 - marginT))).move.orElse(null);
+							MoveEvaluation.Minimum,
+							MoveEvaluation.Maximum,
+							0, 0, Instant.now().plusMillis(Math.max(0, limit / 1000 - marginT)), ply).move.orElse(null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
@@ -71,17 +72,39 @@ public abstract class BaseABAIPlayer implements Player {
 												final Color player,
 												final Color opponent,
 												long alpha, final long beta,
-												final int pscore, final int oscore, final Instant deadLine)
+												final int pscore,
+												final int oscore,
+												final Instant deadLine, final int startDepth)
 	{
-		Iterator<Point> it = handIteratorFactory.apply(board, Arrays.stream(points)
-								.filter(p -> Rule.canPutAt(board, player, p)));
+		if(!Rule.isGameOngoing(board))
+		{
+			if(Rule.winner(board) == opponent) return new MoveEvaluation(MoveEvaluation.Minimum);
+			else if(Rule.winner(board) == player) return new MoveEvaluation(MoveEvaluation.Maximum);
+			else return new MoveEvaluation(0);
+		}
 
-		if(!Instant.now().isBefore(deadLine) || ply == 0 || !it.hasNext())
+		Iterator<Point> it = handIteratorFactory.apply(player, board, Arrays.stream(points)
+				.filter(p -> Rule.canPutAt(board, player, p)));
+
+		if(!Instant.now().isBefore(deadLine) || ply == 0)
 		{
 			return new MoveEvaluation(pscore - oscore);
 		}
+		else if(!it.hasNext())
+		{
+			if(ply == startDepth) return new MoveEvaluation(0);
+			else
+			{
+				return alphabeta(board, ply - 1,
+						opponent, player,
+							-beta, -alpha,
+							oscore,
+							pscore,
+							deadLine, startDepth);
+			}
+		}
 
-		MoveEvaluation best = new MoveEvaluation(alpha);
+		MoveEvaluation best = new MoveEvaluation(MoveEvaluation.Minimum - 1);
 
 		while(it.hasNext())
 		{
@@ -95,12 +118,18 @@ public abstract class BaseABAIPlayer implements Player {
 			MoveEvaluation me = alphabeta(next, ply - 1,
 											opponent, player,
 												-beta, -alpha,
-												oscore, pscore + Rule.reversibles(board, m).size(), deadLine);
+												oscore,
+												pscore + ABScoreEvalutor.evalute(board, m),
+												deadLine, startDepth);
 
-			if(-me.score > alpha)
+			if(-me.score > best.score)
 			{
-				alpha = -me.score;
-				best = new MoveEvaluation(p, alpha);
+				best = new MoveEvaluation(p, -me.score);
+			}
+
+			if(best.score > alpha)
+			{
+				alpha = best.score;
 			}
 
 			if(alpha >= beta || !Instant.now().isBefore(deadLine)) return best;

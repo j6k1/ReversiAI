@@ -8,6 +8,6 @@ public class FirstABAIPlayer extends BaseABAIPlayer {
 	{
 		super(color, gameCondition);
 
-		handIteratorFactory = (board, st) -> st.iterator();
+		handIteratorFactory = (player, board, st) -> st.iterator();
 	}
 }

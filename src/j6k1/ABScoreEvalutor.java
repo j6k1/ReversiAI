@@ -40,12 +40,12 @@ public class ABScoreEvalutor {
 		else if(p.i == 0 || p.i == Point.HEIGHT - 1)
 		{
 			Iterator<Point> it = points.iterator();
-			return score + 5 + (it.hasNext() && it.next().i == p.i ? points.size() * 5 : 0);
+			return score + 10 + (it.hasNext() && it.next().i == p.i ? points.size() * 5 : 0);
 		}
 		else if(p.j == 0 || p.j == Point.WIDTH - 1)
 		{
 			Iterator<Point> it = points.iterator();
-			return score + 5 + (it.hasNext() && it.next().j == p.j ? points.size() * 5 : 0);
+			return score + 10 + (it.hasNext() && it.next().j == p.j ? points.size() * 5 : 0);
 		}
 		else
 		{

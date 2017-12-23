@@ -2,8 +2,11 @@ package j6k1;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 
@@ -29,8 +32,7 @@ public class NNAIPlayer implements Player {
 	protected NN nn;
 	protected final static int unitWidth = 192 * 3;
 	protected final static int nnLayerDepth = 4;
-	protected int[][] history;
-	protected int historyCount;
+	protected List<NNInput> history;
 
 	static {
 		points[0] = Point.of(0,0);
@@ -48,8 +50,7 @@ public class NNAIPlayer implements Player {
 	public NNAIPlayer(Color color, GameCondition gameCondition)
 	{
 		self = color;
-		history = new int[32][];
-		historyCount = 0;
+		history = new ArrayList<>();
 
 		try {
 			nn = new NN(new NNUnit[] {
@@ -132,58 +133,111 @@ public class NNAIPlayer implements Player {
 	@Override
 	public Point decide(Board board, Color color, long givenMillisPerTurn, long remainingMillisInGame) {
 		try {
-			return think(board, color);
+			return think(board, 3, 3,
+							color, color.opposite(),
+							-Double.MAX_VALUE, Double.MAX_VALUE, 0.0).move.orElse(null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
 		}
 	}
 
-	private Point think(Board board, Color player) {
+	private NNMoveEvaluation think(Board board,
+							final int ply,
+							final int startDepth,
+							final Color player,
+							final Color opponent,
+							double alpha, final double beta, final double score) {
+		if(!Rule.isGameOngoing(board))
+		{
+			if(Rule.winner(board) == opponent) return new NNMoveEvaluation(-Double.MAX_VALUE);
+			else if(Rule.winner(board) == player) return new NNMoveEvaluation(Double.MAX_VALUE);
+			else return new NNMoveEvaluation(0);
+		}
+
 		Iterator<Point> it = Arrays.stream(points)
-								.filter(p -> Rule.canPutAt(board, player, p)).iterator();
+				.filter(p -> Rule.canPutAt(board, player, p)).iterator();
 
-		NNMoveEvalution bestMove = null;
+		history.add(new NNInput(evalute(board, player.opposite(), Optional.empty()).input));
+		NNMoveEvaluation passMove = evalute(board, player, Optional.empty());
+
+		if(ply == 0)
+		{
+			return new NNMoveEvaluation(-score);
+		}
+		else if(ply == startDepth && !it.hasNext())
+		{
+			history.add(new NNInput(passMove.input));
+			return passMove;
+		}
+		else if(!it.hasNext())
+		{
+			NNMoveEvaluation e = think(board, ply - 1, startDepth, opponent, player, -beta, -alpha,
+							evalute(board, player.opposite(), Optional.empty()).score);
+			return new NNMoveEvaluation(-e.score);
+		}
+
+		NNMoveEvaluation bestMove = null;
+
 		double bestscore = -Double.MAX_VALUE;
-
-		NNMoveEvalution passEvalution = evalute(board, player, Optional.empty());
 
 		while(it.hasNext())
 		{
 			Point p = it.next();
 
-			NNMoveEvalution e = evalute(board, player, Optional.of(p));
+			Move m = Move.of(player, p);
+			Board next = new AIPlayerUtil.LightweightBoard(board);
+			next.apply(m);
+
+			NNMoveEvaluation me = evalute(board, player.opposite(), Optional.of(p));
+			NNMoveEvaluation e = think(next, ply - 1, startDepth,
+										opponent, player,
+										-beta, -alpha, me.score);
 
 			if(e.score >= bestscore || bestMove == null)
 			{
-				bestscore = e.score;
-				bestMove = e;
+				bestscore = -e.score;
+				bestMove = me;
+			}
+
+			if(bestscore > alpha)
+			{
+				alpha = bestscore;
+			}
+
+			if(alpha >= beta)
+			{
+				break;
 			}
 		}
 
-		if(bestMove == null) history[historyCount++] = passEvalution.input;
-		else history[historyCount++] = bestMove.input;
+		history.add(new NNInput(bestMove.input));
 
-		return bestMove == null ? null : bestMove.move.orElse(null);
+		return bestMove;
 	}
 
 	public void notifyOfResult(GameResult result)
 	{
-		double[] t = result.winner == self ? new double[] { 1.0 } : new double[] { 0.0 };
+		double[][] t = new double[2][];
+		int kind = result.winner == self ? 0 : 1;
 
-		for(int i=historyCount - 1; i >= 0; i--)
+		t[0] = new double[] { 1.0 };
+		t[1] = new double[] { 0.0 };
+
+		for(int i=history.size()-1; i >= 0; i--)
 		{
-			nn = nn.learn(history[i], t, 0.5);
+			nn = nn.learn(history.get(i).input, t[kind], 0.5);
+			kind = (kind + 1) % 2;
 		}
 
 		(new PersistenceWithTextFile(new File("data/nn.txt"))).save(nn);
 	}
 
-	private NNMoveEvalution evalute(Board board, Color player, Optional<Point> move)
+	private NNMoveEvaluation evalute(Board board, Color player, Optional<Point> move)
 	{
 		int[] input = new int[192];
 
-		Board next = move.map(p ->{
+		Board next = move.map(p -> {
 			Move m = Move.of(player, p);
 			Board n = new AIPlayerUtil.LightweightBoard(board);
 			n.apply(m);
@@ -230,7 +284,7 @@ public class NNAIPlayer implements Player {
 
 		double score = r[0] * 100000000;
 
-		return new NNMoveEvalution(input, score, move);
+		return new NNMoveEvaluation(input, score, move);
 	}
 
 	private int[][] mapOfBlank(Board board)
@@ -269,5 +323,13 @@ public class NNAIPlayer implements Player {
 		}
 
 		return r;
+	}
+}
+class NNInput {
+	public final int[] input;
+
+	public NNInput(int[] input)
+	{
+		this.input = input;
 	}
 }

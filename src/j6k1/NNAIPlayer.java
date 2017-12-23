@@ -183,7 +183,7 @@ public class NNAIPlayer implements Player {
 
 			if(me.score >= bestscore || bestMove == null)
 			{
-				bestscore = -me.score;
+				bestscore = me.score;
 				bestMove = me;
 			}
 		}

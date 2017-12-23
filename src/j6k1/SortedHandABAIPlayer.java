@@ -1,6 +1,5 @@
 package j6k1;
 
-import bin.j6k1.BaseABAIPlayer;
 import xyz.hotchpotch.reversi.core.Color;
 import xyz.hotchpotch.reversi.core.Move;
 import xyz.hotchpotch.reversi.framework.GameCondition;

@@ -15,11 +15,4 @@ public class NNMoveEvaluation {
 		this.score = score;
 		this.move = move;
 	}
-
-	public NNMoveEvaluation(double score)
-	{
-		this.input = null;
-		this.score = score;
-		this.move = Optional.empty();
-	}
 }

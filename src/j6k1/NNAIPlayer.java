@@ -133,50 +133,19 @@ public class NNAIPlayer implements Player {
 	@Override
 	public Point decide(Board board, Color color, long givenMillisPerTurn, long remainingMillisInGame) {
 		try {
-			return think(board, 3, 3,
-							color, color.opposite(),
-							-Double.MAX_VALUE, Double.MAX_VALUE, 0.0).move.orElse(null);
+			return think(board, color).orElse(null);
 		} catch (Exception e) {
 			e.printStackTrace();
 			throw e;
 		}
 	}
 
-	private NNMoveEvaluation think(Board board,
-							final int ply,
-							final int startDepth,
-							final Color player,
-							final Color opponent,
-							double alpha, final double beta, final double score) {
-		if(!Rule.isGameOngoing(board))
-		{
-			if(Rule.winner(board) == opponent) return new NNMoveEvaluation(-Double.MAX_VALUE);
-			else if(Rule.winner(board) == player) return new NNMoveEvaluation(Double.MAX_VALUE);
-			else return new NNMoveEvaluation(0);
-		}
-
+	private Optional<Point> think(Board board,final Color player) {
 		Iterator<Point> it = Arrays.stream(points)
 				.filter(p -> Rule.canPutAt(board, player, p)).iterator();
 
 		history.add(new NNInput(evalute(board, player.opposite(), Optional.empty()).input));
 		NNMoveEvaluation passMove = evalute(board, player, Optional.empty());
-
-		if(ply == 0)
-		{
-			return new NNMoveEvaluation(-score);
-		}
-		else if(ply == startDepth && !it.hasNext())
-		{
-			history.add(new NNInput(passMove.input));
-			return passMove;
-		}
-		else if(!it.hasNext())
-		{
-			NNMoveEvaluation e = think(board, ply - 1, startDepth, opponent, player, -beta, -alpha,
-							evalute(board, player.opposite(), Optional.empty()).score);
-			return new NNMoveEvaluation(-e.score);
-		}
-
 		NNMoveEvaluation bestMove = null;
 
 		double bestscore = -Double.MAX_VALUE;
@@ -185,35 +154,18 @@ public class NNAIPlayer implements Player {
 		{
 			Point p = it.next();
 
-			Move m = Move.of(player, p);
-			Board next = new AIPlayerUtil.LightweightBoard(board);
-			next.apply(m);
+			NNMoveEvaluation me = evalute(board, player, Optional.of(p));
 
-			NNMoveEvaluation me = evalute(board, player.opposite(), Optional.of(p));
-			NNMoveEvaluation e = think(next, ply - 1, startDepth,
-										opponent, player,
-										-beta, -alpha, me.score);
-
-			if(e.score >= bestscore || bestMove == null)
+			if(me.score >= bestscore || bestMove == null)
 			{
-				bestscore = -e.score;
+				bestscore = -me.score;
 				bestMove = me;
-			}
-
-			if(bestscore > alpha)
-			{
-				alpha = bestscore;
-			}
-
-			if(alpha >= beta)
-			{
-				break;
 			}
 		}
 
 		history.add(new NNInput(bestMove.input));
 
-		return bestMove;
+		return bestMove == null ? passMove.move : bestMove.move;
 	}
 
 	public void notifyOfResult(GameResult result)

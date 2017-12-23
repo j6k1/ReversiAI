@@ -9,6 +9,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
+import java.util.stream.Collectors;
 
 import j6k1.ai.nn.FReLU;
 import j6k1.ai.nn.FTanh;
@@ -33,6 +34,7 @@ public class NNAIPlayer implements Player {
 	protected final static int unitWidth = 192 * 3;
 	protected final static int nnLayerDepth = 4;
 	protected List<NNInput> history;
+	protected IABHandIteratorFactory handIteratorFactory;
 
 	static {
 		points[0] = Point.of(0,0);
@@ -128,6 +130,29 @@ public class NNAIPlayer implements Player {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+
+		handIteratorFactory = (player, board, st) -> {
+			final List<Point> points = st.collect(Collectors.toList());
+			final Random rnd = new Random();;
+
+			return new Iterator<Point>() {
+				@Override
+				public boolean hasNext() {
+					return !points.isEmpty();
+				}
+
+				@Override
+				public Point next() {
+					int i = rnd.nextInt(points.size());
+
+					Point p = points.get(i);
+
+					points.remove(i);
+
+					return p;
+				}
+			};
+		};
 	}
 
 	@Override
@@ -141,8 +166,8 @@ public class NNAIPlayer implements Player {
 	}
 
 	private Optional<Point> think(Board board,final Color player) {
-		Iterator<Point> it = Arrays.stream(points)
-				.filter(p -> Rule.canPutAt(board, player, p)).iterator();
+		Iterator<Point> it = handIteratorFactory.apply(player, board, Arrays.stream(points)
+				.filter(p -> Rule.canPutAt(board, player, p)));
 
 		history.add(new NNInput(evalute(board, player.opposite(), Optional.empty()).input));
 		NNMoveEvaluation passMove = evalute(board, player, Optional.empty());

@@ -163,9 +163,16 @@ public class NNAIPlayer implements Player {
 			}
 		}
 
-		history.add(new NNInput(bestMove.input));
-
-		return bestMove == null ? passMove.move : bestMove.move;
+		if(bestMove == null)
+		{
+			history.add(new NNInput(passMove.input));
+			return passMove.move;
+		}
+		else
+		{
+			history.add(new NNInput(bestMove.input));
+			return bestMove.move;
+		}
 	}
 
 	public void notifyOfResult(GameResult result)

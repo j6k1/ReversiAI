@@ -154,7 +154,7 @@ public class NNAIPlayer implements Player {
 
 			NNMoveEvalution e = evalute(board, player, Optional.of(p));
 
-			if(e.score >= bestscore)
+			if(e.score >= bestscore || bestMove == null)
 			{
 				bestscore = e.score;
 				bestMove = e;

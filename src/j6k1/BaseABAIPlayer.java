@@ -3,9 +3,6 @@ package j6k1;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.Optional;
-import java.util.function.BiFunction;
-import java.util.stream.Stream;
 
 import xyz.hotchpotch.reversi.aiplayers.AIPlayerUtil;
 import xyz.hotchpotch.reversi.core.Board;

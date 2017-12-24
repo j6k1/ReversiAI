@@ -4,8 +4,11 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Optional;
 
+import xyz.hotchpotch.reversi.aiplayers.AIPlayerUtil;
+import xyz.hotchpotch.reversi.aiplayers.AIPlayerUtil.LightweightBoard;
 import xyz.hotchpotch.reversi.core.Board;
 import xyz.hotchpotch.reversi.core.Color;
+import xyz.hotchpotch.reversi.core.Move;
 import xyz.hotchpotch.reversi.core.Point;
 import xyz.hotchpotch.reversi.core.Rule;
 import xyz.hotchpotch.reversi.framework.GameCondition;
@@ -22,8 +25,28 @@ public class CornerTopPriorityNNAIPlayer extends BaseNNAIPlayer {
 				boolean iscb = ((b.i == 0 && b.j == 0) || (b.i == 0 && b.j == 7) ||
 								(b.i == 7 && b.j == 0) || (b.i == 7 && b.j == 7));
 
+				LightweightBoard na = new AIPlayerUtil.LightweightBoard(board);
+				LightweightBoard nb = new AIPlayerUtil.LightweightBoard(board);
+
+				na.apply(Move.of(player, a));
+				nb.apply(Move.of(player, b));
+
+				boolean isoca = (Arrays.stream(points)
+									.filter(p -> Rule.canPutAt(na, player.opposite(), p)).filter(p -> {
+										return ((p.i == 0 && p.j == 0) || (p.i == 0 && p.j == 7) ||
+												(p.i == 7 && p.j == 0) || (p.i == 7 && p.j == 7));
+									}).count() > 0);
+
+				boolean isocb = (Arrays.stream(points)
+									.filter(p -> Rule.canPutAt(nb, player.opposite(), p)).filter(p -> {
+										return ((p.i == 0 && p.j == 0) || (p.i == 0 && p.j == 7) ||
+												(p.i == 7 && p.j == 0) || (p.i == 7 && p.j == 7));
+									}).count() > 0);
+
 				if(isca && !iscb) return -1;
 				else if(!isca && iscb) return 1;
+				else if(!isoca && isocb) return -1;
+				else if(isoca && !isocb) return 1;
 				else return ma.score == mb.score ? 0 : ma.score > mb.score ? -1 : 1;
 			}).iterator();
 		});

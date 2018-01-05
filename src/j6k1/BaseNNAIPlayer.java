@@ -183,7 +183,7 @@ abstract public class BaseNNAIPlayer implements Player {
 		int kind = result.winner == self ? 0 : 1;
 
 		t[0] = new double[] { 1.0 };
-		t[1] = new double[] { 0.0 };
+		t[1] = new double[] { -1.0 };
 
 		for(int i=history.size()-1; i >= 0; i--)
 		{
